@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Compliance - Central de Documentos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <header class="bg-gradient-to-r from-slate-800 to-slate-900 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-5 sm:px-6 lg:px-8 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center shadow-md">
+                    <i class="fas fa-shield-halved text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight">Sistema de Compliance</h1>
+                    <p class="text-slate-300 text-sm">Central de Documentos</p>
+                </div>
+            </div>
+            <nav id="breadcrumb" class="hidden sm:flex items-center gap-2 text-sm text-slate-300">
+                <button onclick="showFolders()" class="hover:text-white transition flex items-center gap-1">
+                    <i class="fas fa-home text-xs"></i>
+                    Início
+                </button>
+                <span id="breadcrumb-sep" class="hidden"><i class="fas fa-chevron-right text-xs"></i></span>
+                <span id="breadcrumb-current" class="font-semibold text-white"></span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div id="folders-view">
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-slate-800 mb-2 flex items-center gap-2">
+                    <i class="fas fa-folder-open text-blue-600"></i>
+                    Categorias de Documentos
+                </h2>
+                <p class="text-slate-600">Selecione uma categoria para visualizar os documentos disponíveis.</p>
+            </div>
+            <div id="folders-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></div>
+        </div>
+
+        <div id="documents-view" class="hidden">
+            <div class="mb-6 flex items-center justify-between flex-wrap gap-4">
+                <div>
+                    <button onclick="showFolders()" class="mb-3 inline-flex items-center gap-2 text-slate-600 hover:text-blue-600 transition font-medium">
+                        <i class="fas fa-arrow-left"></i>
+                        Voltar para categorias
+                    </button>
+                    <h2 id="category-title" class="text-2xl font-bold text-slate-800 flex items-center gap-2"></h2>
+                    <p id="category-desc" class="text-slate-600 mt-1"></p>
+                </div>
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input id="search-input" type="text" placeholder="Buscar documento..." class="pl-10 pr-4 py-2 w-full sm:w-72 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                </div>
+            </div>
+            <div id="doc-count" class="mb-4 text-sm text-slate-500"></div>
+            <div id="documents-list" class="bg-white rounded-xl shadow-sm border border-slate-200 divide-y divide-slate-100"></div>
+        </div>
+    </main>
+
+    <footer class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 border-t border-slate-200 mt-12">
+        <p class="text-center text-sm text-slate-500">
+            <i class="fas fa-copyright mr-1"></i>
+            <span id="year"></span>
+            Sistema de Compliance - Todos os direitos reservados
+        </p>
+    </footer>
+
+    <script>
+        const categories = [
+            {
+                name: "Governança e Conduta",
+                slug: "1 - GOVERNANÇA E CONDUTA",
+                icon: "fa-landmark",
+                color: "from-indigo-500 to-blue-600",
+                iconBg: "bg-indigo-100 text-indigo-600",
+                description: "Políticas, códigos de conduta e procedimentos de governança corporativa.",
+                documents: [
+                    "Codigo de conduta CC 01-02 [conformidade].pdf",
+                    "PT 02-02 politica de assinatura de documentos oficiais [conformidade].pdf",
+                    "Procedimento CO 2-01 - Gestao dos riscos - Copiar [conformidade].pdf",
+                    "Procedimento CO 4-01 - Nao conformidades e acoes corretivas - Copiar [conformidade].pdf",
+                    "Procedimento-CO-2-04-Legislacao - Copiar [conformidade] (1).pdf",
+                    "Procedimento-CO-2-04-Legislacao - Copiar [conformidade].pdf",
+                    "Procedimento-CO-5-01-Requisitos-gerais [conformidade].pdf",
+                    "Procedimento-CO-5-02-Documentacao [conformidade].pdf",
+                    "Procedimento-CO-5-03-Processos-de-Compliance [conformidade].pdf",
+                    "Procedimento-CO-5-04-Interfaces-internas [conformidade].pdf",
+                    "Procedimento-CO-5-05-Analise-critica-pela-Alta-Direcao [conformidade].pdf",
+                    "Procedimento-CO-5-06-Monitoramento-e-melhoria-continua [conformidade].pdf",
+                    "Procedimento-CO-5-07-Estrutura-do-Compliance [conformidade].pdf",
+                    "Procedimento-CO-5-08-Pesquisas-de-Compliance [conformidade].pdf"
+                ]
+            },
+            {
+                name: "Anticorrupção e Integridade",
+                slug: "2 - ANTICORRUPÇÃO E INTEGRIDADE",
+                icon: "fa-scale-balanced",
+                color: "from-emerald-500 to-teal-600",
+                iconBg: "bg-emerald-100 text-emerald-600",
+                description: "Políticas anticorrupção, conflitos de interesse e integridade.",
+                documents: [
+                    "PT 01-02 politica anticorrupcao [conformidade].pdf",
+                    "Procedimento CO 1-05 - Anexo 1 - Checklist para conflito de interesses - Copiar.xlsx",
+                    "Procedimento CO 1-05 - Conflito de interesses - Copiar [conformidade].pdf",
+                    "Procedimento CO 1-08 - Pagamentos de facilitacao - Copiar [conformidade].pdf",
+                    "Procedimento-CO-1-07-Lavagem-de-dinheiro - Copiar [conformidade].pdf"
+                ]
+            },
+            {
+                name: "Canal de Denúncias e Investigações",
+                slug: "3 - CANAL DE DENÚNCIAS E INVESTIGAÇÕES",
+                icon: "fa-megaphone",
+                color: "from-rose-500 to-pink-600",
+                iconBg: "bg-rose-100 text-rose-600",
+                description: "Canal de denúncias, comitê de ética e procedimentos de investigação.",
+                documents: [
+                    "COMITE DE ETICA REGIMENTO INTERNO - 2025 [conformidade].pdf",
+                    "COMPROMISSO DE CONFIDENCIALIDADE E SIGILO [conformidade].pdf",
+                    "Procedimento-CO-1-11-Proibicao-de-retaliacao - Copiar [conformidade].pdf",
+                    "Procedimento-CO-3-01-Canal-de-denuncias - Copiar [conformidade].pdf",
+                    "TERMO DE COMPROMISSO - MEMBROS [conformidade].pdf"
+                ]
+            },
+            {
+                name: "Trabalhistas e Relações Internas",
+                slug: "4 - TRABALHISTAS E RELAÇÕES INTERNAS",
+                icon: "fa-users",
+                color: "from-amber-500 to-orange-600",
+                iconBg: "bg-amber-100 text-amber-600",
+                description: "Políticas trabalhistas, prevenção ao assédio e auditorias internas.",
+                documents: [
+                    "PL 06-01 - POLITICA DE PREVENCAO AO ASSEDIO E A DISCRIMINACAO [conformidade].pdf",
+                    "PL 06-02 - POLITICA DE PREVENCAO AO ASSEDIO E A DISCRIMINACAO [conformidade].pdf",
+                    "Procedimento CO 2-03 - Anexo 1 - Exemplo de cronograma de treinamento - Copiar.xlsx",
+                    "Procedimento CO 2-05 - Anexo 1 - Formulário de medidas preventivas - Copiar.xlsx",
+                    "Procedimento CO 3-02 - Anexo 1 - Tracking log - Copiar.xlsx",
+                    "Procedimento CO 3-02 - Investigacoes - Copiar [conformidade].pdf",
+                    "Procedimento CO 3-03 - Anexo 1 - Checklist da auditoria de adequação - Código de conduta - Copiar.xlsx",
+                    "Procedimento CO 3-03 - Anexo 2 - Checklist da auditoria de adequação - Procedimentos - Copiar.xlsx",
+                    "Procedimento CO 3-03 - Anexo 3 - Checklist da auditoria de conformidade - Copiar.xlsx",
+                    "Procedimento CO 3-03 - Auditorias internas - Copiar [conformidade].pdf",
+                    "Procedimento CO 3-06 - Anexo 1 - Formulário para verificação de materialidade - Copiar.xlsx",
+                    "Procedimento-CO-1-09-Cumprimento-ao-codigo-de-conduta - Copiar [conformidade].pdf",
+                    "Procedimento-CO-2-02-Comunicacao - Copiar [conformidade].pdf",
+                    "Procedimento-CO-3-04-Controles-e-amostras - Copiar [conformidade].pdf",
+                    "Procedimento-CO-4-02-Medidas-disciplinares - Copiar [conformidade].pdf"
+                ]
+            },
+            {
+                name: "Dados e Tecnologia",
+                slug: "5 - DADOS E TECNOLOGIA",
+                icon: "fa-server",
+                color: "from-violet-500 to-purple-600",
+                iconBg: "bg-violet-100 text-violet-600",
+                description: "LGPD, segurança da informação e políticas de tecnologia.",
+                documents: [
+                    "PL 05-01 - politica LGPD [conformidade].pdf",
+                    "POP TI 01_00 -SEGURANÇA DA INFORMAÇÃO.docx",
+                    "POP TI 01_03 -USO DE SOFTWARE.docx",
+                    "POP TI 01_04 -SEGURANÇA NA REDE.docx",
+                    "POP TI 01_05 -ACESSO AOS ATIVOS DE INFORMAÇAO.docx"
+                ]
+            },
+            {
+                name: "Financeiro e Fiscal",
+                slug: "6 - FINANCEIRO E FISCAL",
+                icon: "fa-sack-dollar",
+                color: "from-lime-500 to-green-600",
+                iconBg: "bg-lime-100 text-lime-600",
+                description: "Políticas financeiras, reembolso de despesas e crédito comercial.",
+                documents: [
+                    "DT 01-01 Diretrizes para Clientes em RJ (1).pdf",
+                    "DT 01-02Diretrizes para utilizacao de conta caixinha [conformidade].pdf",
+                    "PT 01-01 politica de concessao de credito comercial [conformidade].pdf",
+                    "PT 01-03politica de reembolso de despesas [conformidade].pdf",
+                    "PT 110003 - política de reembolso de despesas.docx",
+                    "PT 110004 - política de concessão de crédito comercial.docx",
+                    "PT 110005 - política anticorrupção.docx",
+                    "PT 110006 - Diretrizes para utilização de conta  caixinha.docx",
+                    "PT 110007 - política de assinatura de documentos oficiais.docx",
+                    "Procedimento CO 3-05 - Anexo 1 - Formulário de solicitação de aprovação - Copiar.xlsx",
+                    "Procedimento-CO-1-06-Contabilizacao - Copiar [conformidade].pdf"
+                ]
+            },
+            {
+                name: "Ambiental",
+                slug: "7 - AMBIENTAL",
+                icon: "fa-leaf",
+                color: "from-green-500 to-emerald-600",
+                iconBg: "bg-green-100 text-green-600",
+                description: "Políticas ambientais e gestão de resíduos.",
+                documents: [
+                    "IT GRI 09 Politica Ambiental [assinado].pdf",
+                    "PGRS OFICIAL (1) [conformidade].pdf"
+                ]
+            },
+            {
+                name: "Concorrência e Mercado",
+                slug: "8 - CONCORRÊNCIA E MERCADO",
+                icon: "fa-chart-line",
+                color: "from-sky-500 to-cyan-600",
+                iconBg: "bg-sky-100 text-sky-600",
+                description: "Relação com concorrentes, fornecedores e área pública.",
+                documents: [
+                    "Codigo de conduta de fornecedores CCF 01-01 [conformidade].pdf",
+                    "Procedimento-CO-1-01-Relacao-com-concorrentes-e-politica-Antitruste (2) [conformidade].pdf",
+                    "Procedimento-CO-1-10-Relacao-com-a-area-publica (1) [conformidade].pdf"
+                ]
+            }
+        ];
+
+        let currentCategory = null;
+
+        function getFileInfo(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            let icon, type, color;
+            switch (ext) {
+                case 'pdf':
+                    icon = 'fa-file-pdf';
+                    type = 'PDF';
+                    color = 'text-red-500 bg-red-50';
+                    break;
+                case 'docx':
+                case 'doc':
+                    icon = 'fa-file-word';
+                    type = 'DOC';
+                    color = 'text-blue-600 bg-blue-50';
+                    break;
+                case 'xlsx':
+                case 'xls':
+                    icon = 'fa-file-excel';
+                    type = 'XLS';
+                    color = 'text-green-600 bg-green-50';
+                    break;
+                default:
+                    icon = 'fa-file';
+                    type = ext.toUpperCase();
+                    color = 'text-slate-500 bg-slate-50';
+            }
+            return { icon, type, color, ext };
+        }
+
+        function renderFolders() {
+            const grid = document.getElementById('folders-grid');
+            grid.innerHTML = categories.map((cat, idx) => `
+                <div onclick="showDocuments(${idx})" class="group bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden">
+                    <div class="bg-gradient-to-r ${cat.color} p-5 text-white relative overflow-hidden">
+                        <div class="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full group-hover:scale-125 transition-transform duration-500"></div>
+                        <div class="relative flex items-start justify-between">
+                            <div class="w-12 h-12 rounded-lg bg-white/20 backdrop-blur flex items-center justify-center">
+                                <i class="fas ${cat.icon} text-xl"></i>
+                            </div>
+                            <span class="bg-white/20 backdrop-blur px-2.5 py-1 rounded-full text-xs font-medium">
+                                ${cat.documents.length} docs
+                            </span>
+                        </div>
+                        <h3 class="mt-4 font-bold text-lg leading-tight">${cat.name}</h3>
+                    </div>
+                    <div class="p-5">
+                        <p class="text-sm text-slate-600 mb-4 line-clamp-2 min-h-[2.5rem]">${cat.description}</p>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="inline-flex items-center gap-1.5 text-blue-600 font-medium group-hover:gap-2.5 transition-all">
+                                Ver documentos
+                                <i class="fas fa-arrow-right text-xs"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderDocuments(filter = '') {
+            if (!currentCategory) return;
+            const cat = currentCategory;
+            const list = document.getElementById('documents-list');
+            const filteredDocs = cat.documents.filter(d =>
+                d.toLowerCase().includes(filter.toLowerCase())
+            );
+
+            document.getElementById('doc-count').innerHTML = `
+                <i class="fas fa-file-lines mr-1"></i>
+                Exibindo <strong>${filteredDocs.length}</strong> de <strong>${cat.documents.length}</strong> documento(s)
+            `;
+
+            if (filteredDocs.length === 0) {
+                list.innerHTML = `
+                    <div class="p-12 text-center">
+                        <i class="fas fa-search text-4xl text-slate-300 mb-3"></i>
+                        <p class="text-slate-500 font-medium">Nenhum documento encontrado.</p>
+                        <p class="text-sm text-slate-400 mt-1">Tente buscar por outro termo.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = filteredDocs.map(filename => {
+                const info = getFileInfo(filename);
+                const filePath = encodeURIComponent(cat.slug).replace(/%2F/g, '/') + '/' + encodeURIComponent(filename);
+                return `
+                    <a href="${filePath}" target="_blank" rel="noopener" class="flex items-center gap-4 p-4 sm:p-5 hover:bg-slate-50 transition group">
+                        <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-lg ${info.color} flex items-center justify-center flex-shrink-0">
+                            <i class="fas ${info.icon} text-xl sm:text-2xl"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-medium text-slate-800 truncate group-hover:text-blue-600 transition">${filename}</p>
+                            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 font-semibold uppercase tracking-wide">
+                                    ${info.type}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="flex-shrink-0 flex items-center gap-3">
+                            <span class="hidden sm:inline-flex items-center gap-1.5 text-slate-400 group-hover:text-blue-600 transition text-sm font-medium">
+                                Abrir
+                            </span>
+                            <div class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition">
+                                <i class="fas fa-arrow-up-right-from-square text-sm"></i>
+                            </div>
+                        </div>
+                    </a>
+                `;
+            }).join('');
+        }
+
+        function showDocuments(index) {
+            currentCategory = categories[index];
+            document.getElementById('folders-view').classList.add('hidden');
+            document.getElementById('documents-view').classList.remove('hidden');
+            document.getElementById('category-title').innerHTML = `
+                <i class="fas ${currentCategory.icon} ${currentCategory.iconBg} w-10 h-10 rounded-lg flex items-center justify-center text-lg"></i>
+                ${currentCategory.name}
+            `;
+            document.getElementById('category-desc').textContent = currentCategory.description;
+            document.getElementById('breadcrumb-sep').classList.remove('hidden');
+            document.getElementById('breadcrumb-current').textContent = currentCategory.name;
+            document.getElementById('search-input').value = '';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            renderDocuments();
+        }
+
+        function showFolders() {
+            currentCategory = null;
+            document.getElementById('folders-view').classList.remove('hidden');
+            document.getElementById('documents-view').classList.add('hidden');
+            document.getElementById('breadcrumb-sep').classList.add('hidden');
+            document.getElementById('breadcrumb-current').textContent = '';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            renderDocuments(e.target.value);
+        });
+
+        document.getElementById('year').textContent = new Date().getFullYear();
+        renderFolders();
+    </script>
+</body>
+</html>
