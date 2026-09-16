@@ -14,6 +14,7 @@
     @else
         <script src="https://cdn.tailwindcss.com"></script>
     @endif
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
     <header class="bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 text-white">
@@ -224,6 +225,14 @@
                                                     <i class="fas fa-up-right-from-square"></i>
                                                     Abrir
                                                 </a>
+                                                <button type="button"
+                                                        class="sign-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition"
+                                                        data-file-id="{{ $file['id'] }}"
+                                                        data-file-name="{{ $file['display_name'] }}"
+                                                        title="Assinar Termo de Ciência">
+                                                    <i class="fas fa-signature"></i>
+                                                    Assinar
+                                                </button>
                                                 <a href="{{ $file['url'] }}"
                                                    download
                                                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition"
@@ -242,6 +251,8 @@
             </section>
         </div>
     </main>
+
+    <div id="signature-modal-root" aria-live="polite"></div>
 
     <footer class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 border-t border-slate-200 mt-12">
         <p class="text-center text-sm text-slate-500">
@@ -277,6 +288,313 @@
             searchInput.addEventListener('input', (e) => render(e.target.value));
         }
         render('');
+
+        function getCsrfToken() {
+            const meta = document.querySelector('meta[name="csrf-token"]');
+            return meta ? meta.getAttribute('content') : '';
+        }
+
+        function bindSignButtons(rootEl) {
+            const scope = rootEl || document;
+            const btns = scope.querySelectorAll('.sign-btn');
+            btns.forEach(function (btn) {
+                if (btn.dataset.bound === '1') return;
+                btn.dataset.bound = '1';
+                btn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const fileId = btn.getAttribute('data-file-id');
+                    const fileName = btn.getAttribute('data-file-name') || '';
+                    openSignatureModal(fileId, fileName);
+                });
+            });
+        }
+
+        function openSignatureModal(fileId, fileName) {
+            const root = document.getElementById('signature-modal-root');
+            if (!root) return;
+            const modalId = 'signature-modal';
+            let modalEl = document.getElementById(modalId);
+            if (!modalEl) {
+                const html = '' +
+                    '<div id="' + modalId + '" class="fixed inset-0 z-[60] hidden flex items-center justify-center p-4 sm:p-6">' +
+                        '<div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" data-close-signature="' + modalId + '"></div>' +
+                        '<div class="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col" role="dialog" aria-modal="true">' +
+                            '<div class="bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-5 relative overflow-hidden">' +
+                                '<div class="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>' +
+                                '<div class="relative flex items-start justify-between gap-4">' +
+                                    '<div class="flex items-start gap-3">' +
+                                        '<div class="w-11 h-11 rounded-lg bg-white/20 backdrop-blur flex items-center justify-center flex-shrink-0">' +
+                                            '<i class="fas fa-signature text-lg"></i>' +
+                                        '</div>' +
+                                        '<div class="min-w-0">' +
+                                            '<h3 class="text-lg font-bold leading-tight">Assinar Termo de Ciência</h3>' +
+                                            '<p class="signature-doc-name text-sm text-white/85 mt-0.5 truncate max-w-xs"></p>' +
+                                        '</div>' +
+                                    '</div>' +
+                                    '<button type="button" data-close-signature="' + modalId + '" class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white/15 hover:bg-white/25 backdrop-blur text-white transition flex-shrink-0" aria-label="Fechar">' +
+                                        '<i class="fas fa-times"></i>' +
+                                    '</button>' +
+                                '</div>' +
+                            '</div>' +
+                            '<form class="signature-form flex flex-col flex-1" novalidate>' +
+                                '<input type="hidden" name="file_id" value="">' +
+                                '<div class="p-5 sm:p-6 space-y-4 flex-1 overflow-y-auto">' +
+                                    '<div class="signature-alert hidden rounded-lg px-4 py-3 text-sm"></div>' +
+                                    '<div>' +
+                                        '<label class="block text-sm font-medium text-slate-700 mb-1.5">Nome Completo <span class="text-red-500">*</span></label>' +
+                                        '<input type="text" name="name" required maxlength="255" ' +
+                                               'class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition" ' +
+                                               'placeholder="Informe seu nome completo">' +
+                                        '<p class="signature-error-name mt-1 text-xs text-red-600 hidden"></p>' +
+                                    '</div>' +
+                                    '<div>' +
+                                        '<label class="block text-sm font-medium text-slate-700 mb-1.5">E-mail <span class="text-red-500">*</span></label>' +
+                                        '<input type="email" name="email" required maxlength="255" ' +
+                                               'class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition" ' +
+                                               'placeholder="seu@email.com">' +
+                                        '<p class="signature-error-email mt-1 text-xs text-red-600 hidden"></p>' +
+                                    '</div>' +
+                                    '<div>' +
+                                        '<label class="block text-sm font-medium text-slate-700 mb-1.5">CPF <span class="text-red-500">*</span></label>' +
+                                        '<input type="text" name="cpf" required maxlength="14" ' +
+                                               'class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition" ' +
+                                               'placeholder="000.000.000-00">' +
+                                        '<p class="signature-error-cpf mt-1 text-xs text-red-600 hidden"></p>' +
+                                    '</div>' +
+                                '</div>' +
+                                '<div class="px-5 sm:px-6 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3">' +
+                                    '<button type="button" data-close-signature="' + modalId + '" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 text-slate-700 font-medium hover:bg-slate-200 transition">' +
+                                        '<i class="fas fa-arrow-left"></i>Cancelar' +
+                                    '</button>' +
+                                    '<button type="submit" class="signature-submit inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white font-medium shadow hover:bg-emerald-700 transition disabled:opacity-60 disabled:cursor-not-allowed">' +
+                                        '<i class="fas fa-pen"></i>Confirmar Assinatura' +
+                                    '</button>' +
+                                '</div>' +
+                            '</form>' +
+                        '</div>' +
+                    '</div>';
+                root.insertAdjacentHTML('beforeend', html);
+                modalEl = document.getElementById(modalId);
+
+                modalEl.addEventListener('click', function (ev) {
+                    const closeTarget = ev.target.closest('[data-close-signature="' + modalId + '"]');
+                    if (closeTarget) closeSignatureModal();
+                });
+
+                const cpfInput = modalEl.querySelector('input[name="cpf"]');
+                if (cpfInput) {
+                    cpfInput.addEventListener('input', function () {
+                        let v = cpfInput.value.replace(/\D/g, '').substring(0, 11);
+                        if (v.length >= 9) v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2})$/, '$1.$2.$3-$4');
+                        else if (v.length >= 6) v = v.replace(/^(\d{3})(\d{3})(\d{0,3})$/, '$1.$2.$3');
+                        else if (v.length >= 3) v = v.replace(/^(\d{3})(\d{0,3})$/, '$1.$2');
+                        cpfInput.value = v;
+                    });
+                }
+
+                const form = modalEl.querySelector('.signature-form');
+                if (form) {
+                    form.addEventListener('submit', function (e) {
+                        e.preventDefault();
+                        submitSignatureForm(form);
+                    });
+                }
+            }
+
+            modalEl.querySelector('input[name="file_id"]').value = fileId || '';
+            const nameEl = modalEl.querySelector('.signature-doc-name');
+            if (nameEl) nameEl.textContent = fileName ? ('Documento: ' + fileName) : '';
+            const form = modalEl.querySelector('.signature-form');
+            if (form) {
+                form.reset();
+                form.querySelector('input[name="file_id"]').value = fileId || '';
+                form.querySelectorAll('[class*="signature-error-"]').forEach(function (p) {
+                    p.classList.add('hidden');
+                    p.textContent = '';
+                });
+                form.querySelectorAll('input').forEach(function (i) {
+                    i.classList.remove('border-red-500', 'focus:ring-red-500', 'focus:border-red-500');
+                    i.classList.add('border-slate-300', 'focus:ring-emerald-500', 'focus:border-emerald-500');
+                });
+                const alert = modalEl.querySelector('.signature-alert');
+                if (alert) {
+                    alert.classList.add('hidden');
+                    alert.classList.remove('bg-red-50', 'text-red-700', 'border', 'border-red-200', 'bg-emerald-50', 'text-emerald-700', 'border-emerald-200');
+                    alert.textContent = '';
+                }
+                const submitBtn = modalEl.querySelector('.signature-submit');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-pen"></i>Confirmar Assinatura';
+                }
+            }
+            modalEl.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            const firstInput = modalEl.querySelector('input[name="name"]');
+            if (firstInput) setTimeout(function () { firstInput.focus(); }, 50);
+        }
+
+        function closeSignatureModal() {
+            const modalEl = document.getElementById('signature-modal');
+            if (modalEl) modalEl.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        function showSignatureAlert(type, message) {
+            const modalEl = document.getElementById('signature-modal');
+            if (!modalEl) return;
+            const alert = modalEl.querySelector('.signature-alert');
+            if (!alert) return;
+            alert.classList.remove('hidden', 'bg-red-50', 'text-red-700', 'border', 'border-red-200', 'bg-emerald-50', 'text-emerald-700', 'border-emerald-200');
+            if (type === 'error') {
+                alert.classList.add('bg-red-50', 'text-red-700', 'border', 'border-red-200');
+            } else {
+                alert.classList.add('bg-emerald-50', 'text-emerald-700', 'border', 'border-emerald-200');
+            }
+            alert.textContent = message;
+        }
+
+        function setFieldError(fieldName, message) {
+            const modalEl = document.getElementById('signature-modal');
+            if (!modalEl) return;
+            const input = modalEl.querySelector('input[name="' + fieldName + '"]');
+            const errP = modalEl.querySelector('.signature-error-' + fieldName);
+            if (message) {
+                if (input) {
+                    input.classList.remove('border-slate-300', 'focus:ring-emerald-500', 'focus:border-emerald-500');
+                    input.classList.add('border-red-500', 'focus:ring-red-500', 'focus:border-red-500');
+                }
+                if (errP) {
+                    errP.textContent = message;
+                    errP.classList.remove('hidden');
+                }
+            } else {
+                if (input) {
+                    input.classList.remove('border-red-500', 'focus:ring-red-500', 'focus:border-red-500');
+                    input.classList.add('border-slate-300', 'focus:ring-emerald-500', 'focus:border-emerald-500');
+                }
+                if (errP) {
+                    errP.textContent = '';
+                    errP.classList.add('hidden');
+                }
+            }
+        }
+
+        function isValidEmail(v) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || ''));
+        }
+
+        function isValidCpf(v) {
+            const digits = String(v || '').replace(/\D/g, '');
+            return digits.length === 11;
+        }
+
+        async function submitSignatureForm(form) {
+            const data = new FormData(form);
+            const fileId = (data.get('file_id') || '').toString().trim();
+            const name = (data.get('name') || '').toString().trim();
+            const email = (data.get('email') || '').toString().trim();
+            const cpf = (data.get('cpf') || '').toString().trim();
+
+            setFieldError('name', null);
+            setFieldError('email', null);
+            setFieldError('cpf', null);
+
+            let hasError = false;
+            if (!fileId) {
+                showSignatureAlert('error', 'ID do documento não identificado. Tente novamente.');
+                return;
+            }
+            if (!name || name.length < 2) {
+                setFieldError('name', 'Informe seu nome completo.');
+                hasError = true;
+            }
+            if (!email || !isValidEmail(email)) {
+                setFieldError('email', 'Informe um e-mail válido.');
+                hasError = true;
+            }
+            if (!cpf || !isValidCpf(cpf)) {
+                setFieldError('cpf', 'Informe um CPF válido (11 dígitos).');
+                hasError = true;
+            }
+            if (hasError) {
+                showSignatureAlert('error', 'Por favor, revise os campos destacados.');
+                return;
+            }
+
+            const submitBtn = form.querySelector('.signature-submit');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Enviando...';
+            }
+            showSignatureAlert('', '');
+
+            try {
+                const url = '/arquivos/' + encodeURIComponent(fileId) + '/assinar';
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': getCsrfToken(),
+                    },
+                    body: JSON.stringify({ name: name, email: email, cpf: cpf }),
+                });
+
+                let json = null;
+                try { json = await res.json(); } catch (_) {}
+
+                if (res.status === 201) {
+                    showSignatureAlert('success', (json && json.message) || 'Assinatura realizada com sucesso!');
+                    if (submitBtn) {
+                        submitBtn.innerHTML = '<i class="fas fa-check"></i>Assinado';
+                    }
+                    setTimeout(function () {
+                        closeSignatureModal();
+                    }, 1800);
+                } else if (res.status === 409) {
+                    showSignatureAlert('error', (json && json.message) || 'Este e-mail já assinou este documento.');
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-pen"></i>Confirmar Assinatura';
+                    }
+                } else if (res.status === 422 && json && json.errors) {
+                    const errs = json.errors || {};
+                    if (errs.name && errs.name[0]) setFieldError('name', errs.name[0]);
+                    if (errs.email && errs.email[0]) setFieldError('email', errs.email[0]);
+                    if (errs.cpf && errs.cpf[0]) setFieldError('cpf', errs.cpf[0]);
+                    showSignatureAlert('error', 'Verifique os dados e tente novamente.');
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-pen"></i>Confirmar Assinatura';
+                    }
+                } else {
+                    showSignatureAlert('error', (json && json.message) || ('Erro ao enviar (HTTP ' + res.status + '). Tente novamente.'));
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-pen"></i>Confirmar Assinatura';
+                    }
+                }
+            } catch (err) {
+                console.warn('Erro no envio da assinatura:', err);
+                showSignatureAlert('error', 'Falha na conexão. Verifique sua internet e tente novamente.');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-pen"></i>Confirmar Assinatura';
+                }
+            }
+        }
+
+        bindSignButtons(document);
+        document.addEventListener('keydown', function escSignature(e) {
+            if (e.key === 'Escape') {
+                const modalEl = document.getElementById('signature-modal');
+                if (modalEl && !modalEl.classList.contains('hidden')) {
+                    closeSignatureModal();
+                }
+            }
+        });
     </script>
 </body>
 </html>

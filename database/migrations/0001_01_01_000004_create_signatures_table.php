@@ -13,8 +13,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('file_id')->constrained('files')->onDelete('cascade');
             $table->string('name')->required();
-            $table->text('email')->required();
-            $table->text('cpf')->required();
+            $table->string('email')->required();
+            $table->string('cpf')->required();
             $table->timestamps();
         });
 

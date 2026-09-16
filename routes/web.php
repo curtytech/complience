@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/categorias/{fileCategory}', [HomeController::class, 'show'])->name('categories.show');
+Route::post('/arquivos/{file}/assinar', [HomeController::class, 'sign'])->name('files.sign');
 
 Route::get('/api/categories', function (Request $request) {
     $data = FileCategory::query()

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\File;
 use App\Models\FileCategory;
+use App\Models\Signature;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -95,5 +96,48 @@ class HomeController extends Controller
         ];
 
         return view('category.show', compact('files', 'allCategories', 'currentCategory'));
+    }
+
+    public function sign(Request $request, File $file): \Illuminate\Http\JsonResponse
+    {
+        if (! $file->exists) {
+            return response()->json(['message' => 'Arquivo não encontrado.'], 404);
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:65535',
+            'cpf' => 'required|string|max:65535',
+        ]);
+
+        $exists = Signature::query()
+            ->where('file_id', $file->id)
+            ->where('email', $validated['email'])
+            ->exists();
+
+        if ($exists) {
+            return response()->json([
+                'message' => 'Este e-mail já assinou o termo de ciência para este documento.',
+                'signed' => true,
+            ], 409);
+        }
+
+        $signature = Signature::create([
+            'file_id' => $file->id,
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'cpf' => $validated['cpf'],
+        ]);
+
+        return response()->json([
+            'message' => 'Termo de ciência assinado com sucesso!',
+            'signed' => true,
+            'signature' => [
+                'id' => $signature->id,
+                'name' => $signature->name,
+                'email' => $signature->email,
+                'signed_at' => $signature->created_at?->format('d/m/Y H:i'),
+            ],
+        ], 201);
     }
 }
