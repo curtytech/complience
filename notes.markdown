@@ -33,3 +33,11 @@ composer dump-autoload -o
 
 php artisan key:generate
 
+
+ASSET_URL=https://compliance.sequoia.srv.br
+
+
+chmod -R 775 storage bootstrap/cache
+chown -R $USER:www-data storage bootstrap/cache
+chmod -R 775 storage bootstrap/cache
+chmod -R 775 storage database
